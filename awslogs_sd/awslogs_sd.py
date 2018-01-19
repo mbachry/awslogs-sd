@@ -223,7 +223,6 @@ def reader_task(queue, unit_conf, state):
     logger.debug('Started reader task for unit "%s/%s"', unit_conf.name, unit_conf.unit)
 
     for _ in infinity():
-        # TODO: test journal daemon restart
         gevent.socket.wait_read(fd)
         r.process()
         records = itertools.islice(r, skip, None)
@@ -238,7 +237,7 @@ def split_batch_by_time_span(records, max_span=MAX_BATCH_TIME_SPAN):
     batch = []
     last_date = None
     for record in records:
-        if last_date is not None and record.date - last_date > MAX_BATCH_TIME_SPAN:
+        if last_date is not None and record.date - last_date > max_span:
             yield batch
             batch = []
         batch.append(record)
@@ -269,10 +268,7 @@ def batcher_task(src_queue, dst_queue, n_items=MAX_BATCH_ITEMS, batch_timeout=BA
             last_flush = time.monotonic()
 
 
-def get_cwl_token(client, group, stream, state):
-    token = state.get_token(group, stream)
-    if token is not None:
-        return token
+def get_cwl_token(client, group, stream):
     resp = client.describe_log_streams(logGroupName=group, logStreamNamePrefix=stream)
     streams = [s for s in resp['logStreams'] if s['logStreamName'] == stream]
     assert len(streams) == 1
@@ -308,7 +304,9 @@ def push_records(client, records, unit_conf, state):
     }
 
     try:
-        cwl_token = get_cwl_token(client, group, stream, state)
+        cwl_token = state.get_token(group, stream)
+        if cwl_token is None:
+            cwl_token = get_cwl_token(client, group, stream)
         kwargs['sequenceToken'] = cwl_token
 
         resp = client.put_log_events(**kwargs)

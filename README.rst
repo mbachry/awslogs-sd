@@ -18,15 +18,9 @@ required package is named ``python3-pip`` both in Ubuntu and Fedora::
 
     dnf install python3-pip
 
-You need systemd Python bindings too, as they are not
-pip-installable. Again, the package has the same name in Ubuntu and
-Fedora::
-
-    dnf install python3-systemd
-
 Create dedicated virtualenv for awslogs-sd::
 
-    python3 -m venv --system-site-packages /opt/awslogs-sd
+    python3 -m venv /opt/awslogs-sd
     /opt/awslogs-sd/bin/pip install wheel
 
 And finally::

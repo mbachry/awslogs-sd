@@ -1,15 +1,19 @@
 language: python
 dist: trusty
 
-python:
-  - 3.6
-
-env:
-  - TOX_ENV=py35
-  - TOX_ENV=py36
+before_install:
+  - sudo apt update -q
+  - sudo apt install -y libsystemd-{journal,daemon,login,id128}-dev gcc python3-dev pkg-config
 
 install:
   - pip install tox
+
+matrix:
+  include:
+    - python: 3.5
+      env: TOX_ENV=py35
+    - python: 3.6
+      env: TOX_ENV=py36
 
 script:
   - tox -e $TOX_ENV

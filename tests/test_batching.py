@@ -1,4 +1,4 @@
-import mock
+from unittest import mock
 from queue import Queue
 from datetime import datetime, timedelta
 from awslogs_sd.awslogs_sd import batcher_task, split_batch_by_time_span

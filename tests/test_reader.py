@@ -1,4 +1,4 @@
-import mock
+from unittest import mock
 from awslogs_sd.awslogs_sd import State, reader_task
 from .factories import make_sd_record
 

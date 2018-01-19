@@ -22,6 +22,7 @@ setup(
         'pyyaml',
         'requests',
         'retrying',
+        'systemd-python',
     ],
     entry_points={
         'console_scripts': [

@@ -1,4 +1,4 @@
-import mock
+from unittest import mock
 from datetime import datetime, timedelta
 import pytest
 import boto3
@@ -60,45 +60,41 @@ def put_log_events_response():
 
 @pytest.fixture
 def client():
-    real_client = boto3.client('logs')
+    real_client = boto3.client('logs', region_name='us-east-1')
     exc_class = real_client.exceptions.InvalidSequenceTokenException
     client = mock.MagicMock()
     client.exceptions.InvalidSequenceTokenException = exc_class
     return client
 
 
-def test_get_cwl_token_empty_state(state, describe_log_streams_response):
+def test_get_cwl_token(describe_log_streams_response):
     client = mock.MagicMock()
     client.describe_log_streams.return_value = describe_log_streams_response
     expected = describe_log_streams_response['logStreams'][1]
-    token = get_cwl_token(client, 'group', expected['logStreamName'], state)
+    token = get_cwl_token(client, 'group', expected['logStreamName'])
     assert token == expected['uploadSequenceToken']
 
 
-def test_get_cwl_token_saved_state(state):
-    expected_token = 'token111'
-    state.set_token('group', 'stream', expected_token)
-    client = mock.MagicMock()
-    token = get_cwl_token(client, 'group', 'stream', state)
-    assert token == expected_token
-    assert not client.describe_log_streams.called
-
-
-def test_push_records(client, unit_conf, state, put_log_events_response):
+@pytest.mark.parametrize(
+    'saved_token',
+    (None, 'token111'),
+    ids=('empty_state', 'existing_token'))
+@mock.patch('awslogs_sd.awslogs_sd.get_cwl_token')
+def test_push_records(get_token_mock, client, unit_conf, state, put_log_events_response, saved_token):
     client.put_log_events.return_value = put_log_events_response
+    get_token_mock.return_value = 'tokennn'
     now = datetime.now()
     records = [
         make_record(unit_conf, date=now + timedelta(seconds=6), cursor='s=0'),
         make_record(unit_conf, date=now + timedelta(seconds=3), cursor='s=1'),
         make_record(unit_conf, date=now + timedelta(seconds=7), cursor='s=2'),
     ]
-    token = 'token111'
-    state.set_token(unit_conf.log_group_name, unit_conf.log_stream_name, token)
+    state.set_token(unit_conf.log_group_name, unit_conf.log_stream_name, saved_token)
     push_records(client, records, unit_conf, state)
     call = {
         'logGroupName': unit_conf.log_group_name,
         'logStreamName': unit_conf.log_stream_name,
-        'sequenceToken': token,
+        'sequenceToken': saved_token or get_token_mock.return_value,
         'logEvents': [
             {
                 'timestamp': int(r.date.timestamp() * 1000),
