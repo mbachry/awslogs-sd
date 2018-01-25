@@ -13,14 +13,19 @@ per systemd unit journal output instead of text log files.
 Installing
 ----------
 
-Use your system package manager to install Python 3 and pip. The
-required package is named ``python3-pip`` both in Ubuntu and Fedora::
+Use your system package manager to install systemd Python 3
+binding. The required package is named ``python3-systemd`` both in
+Ubuntu and Fedora::
 
-    dnf install python3-pip
+    dnf install python3-systemd
+
+If on Ubuntu, install ``python3-venv`` too::
+
+    apt install python3-venv
 
 Create dedicated virtualenv for awslogs-sd::
 
-    python3 -m venv /opt/awslogs-sd
+    python3 -m venv --system-site-packages /opt/awslogs-sd
     /opt/awslogs-sd/bin/pip install wheel
 
 And finally::
