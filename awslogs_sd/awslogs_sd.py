@@ -307,7 +307,8 @@ def push_records(client, records, unit_conf, state):
         cwl_token = state.get_token(group, stream)
         if cwl_token is None:
             cwl_token = get_cwl_token(client, group, stream)
-        kwargs['sequenceToken'] = cwl_token
+        if cwl_token is not None:
+            kwargs['sequenceToken'] = cwl_token
 
         resp = client.put_log_events(**kwargs)
 
