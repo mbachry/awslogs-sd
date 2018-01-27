@@ -335,6 +335,12 @@ def push_records(client, records, unit_conf, state):
             logging.warning('invalid sequence token, refreshing')
             state.set_token(group, stream, None)
             raise LogPushError('invalid sequence token')
+        elif isinstance(e, client.exceptions.DataAlreadyAcceptedException):
+            logging.warning('data already sent, dropping duplicate batch and refreshing token')
+            state.set_cursor(unit_conf.name, records[-1].cursor)
+            state.set_token(group, stream, None)
+            state.write()
+            return
         else:
             raise
 

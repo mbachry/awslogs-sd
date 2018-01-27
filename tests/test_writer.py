@@ -61,9 +61,9 @@ def put_log_events_response():
 @pytest.fixture
 def client():
     real_client = boto3.client('logs', region_name='us-east-1')
-    exc_class = real_client.exceptions.InvalidSequenceTokenException
     client = mock.MagicMock()
-    client.exceptions.InvalidSequenceTokenException = exc_class
+    client.exceptions.InvalidSequenceTokenException = real_client.exceptions.InvalidSequenceTokenException
+    client.exceptions.DataAlreadyAcceptedException = real_client.exceptions.DataAlreadyAcceptedException
     return client
 
 
@@ -132,10 +132,8 @@ def test_push_records_retries_on_invalid_token(client, unit_conf, state, describ
     error_response = {
         'ResponseMetadata': {},
     }
-    client = mock.MagicMock()
     client.put_log_events.side_effect = [exc_class(error_response, ''), RuntimeError]
     client.describe_log_streams.return_value = describe_log_streams_response
-    client.exceptions.InvalidSequenceTokenException = exc_class
     now = datetime.now()
     records = [
         make_record(unit_conf, date=now + timedelta(seconds=6), cursor='s=0'),
@@ -149,6 +147,30 @@ def test_push_records_retries_on_invalid_token(client, unit_conf, state, describ
     assert client.put_log_events.call_count == 2
     # check if invalid token was refreshed
     assert client.describe_log_streams.call_count == 1
+
+
+def test_push_records_ignores_duplicate_batch(client, unit_conf, state):
+    exc_class = client.exceptions.DataAlreadyAcceptedException
+    error_response = {
+        'ResponseMetadata': {},
+    }
+    client.put_log_events.side_effect = exc_class(error_response, '')
+    now = datetime.now()
+    records = [
+        make_record(unit_conf, date=now + timedelta(seconds=6), cursor='s=0'),
+        make_record(unit_conf, date=now + timedelta(seconds=3), cursor='s=1'),
+        make_record(unit_conf, date=now + timedelta(seconds=7), cursor='s=2'),
+    ]
+    state.set_token(unit_conf.log_group_name, unit_conf.log_stream_name, 'token111')
+
+    push_records(client, records, unit_conf, state)
+
+    assert client.put_log_events.call_count == 1
+    state = State(state.filename)
+    saved_token = state.get_token(unit_conf.log_group_name, unit_conf.log_stream_name)
+    assert saved_token is None
+    saved_cursor = state.get_cursor(unit_conf.name)
+    assert saved_cursor == records[-1].cursor
 
 
 @mock.patch('awslogs_sd.awslogs_sd.boto3.client')
