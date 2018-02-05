@@ -233,15 +233,17 @@ def reader_task(queue, unit_conf, state):
 
 
 def split_batch_by_time_span(records, max_span=MAX_BATCH_TIME_SPAN):
+    assert records
     records.sort(key=attrgetter('date'))
     batch = []
-    last_date = None
+    last_date = records[0].date
+
     for record in records:
-        if last_date is not None and record.date - last_date > max_span:
+        if record.date - last_date > max_span:
             yield batch
             batch = []
+            last_date = record.date
         batch.append(record)
-        last_date = record.date
     if batch:
         yield batch
 

@@ -62,6 +62,16 @@ def test_split_old_records_freshest_last(unit_conf):
     assert result[1] == sorted(records1, key=key_func)
 
 
+def test_split_old_records_continuous(unit_conf):
+    now = datetime.now()
+    records = [
+        make_record(unit_conf, date=now + timedelta(hours=n))
+        for n in range(60)
+    ]
+    result = list(split_batch_by_time_span(records))
+    assert len(result) == 3
+
+
 def test_batcher(unit_conf, queue):
     now = datetime.now()
     records = [

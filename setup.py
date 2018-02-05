@@ -8,7 +8,7 @@ with open('README.rst') as readme_file:
 
 setup(
     name='awslogs-sd',
-    version='0.4',
+    version='0.5',
     description="Forward systemd journal logs to cloudwatch",
     long_description=readme,
     author="Marcin Bachry",
