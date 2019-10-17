@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import json
+import os
 import time
 import itertools
 import logging
@@ -25,7 +26,7 @@ from .metrics import metrics, metrics_task
 
 # cloudwatch doesn't allow batch spans larger than 24h
 MAX_BATCH_TIME_SPAN = timedelta(hours=24)
-MAX_BATCH_ITEMS = 100
+MAX_BATCH_ITEMS = os.getenv('AWSLOGS_SD_MAX_BATCH_ITEMS', 100)
 BATCH_TIMEOUT_S = 1.0
 MAX_QUEUE_SIZE = 100000
 
