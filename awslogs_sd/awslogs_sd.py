@@ -411,8 +411,13 @@ def create_log_streams(conf):
     for unit_conf in conf.units:
         group = unit_conf.log_group_name
         name = unit_conf.log_stream_name
+        all_streams = []
         resp = client.describe_log_streams(logGroupName=group)
-        matches = [g for g in resp['logStreams'] if g['logStreamName'] == name]
+        all_streams += resp['logStreams']
+        while 'nextToken' in resp:
+          resp = client.describe_log_streams(logGroupName=group, nextToken=resp['nextToken'])
+          all_streams += resp['logStreams']
+        matches = [g for g in all_streams if g['logStreamName'] == name]
         if not matches:
             logger.info('Creating log stream: %s', name)
             client.create_log_stream(logGroupName=group, logStreamName=name)
