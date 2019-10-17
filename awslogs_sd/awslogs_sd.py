@@ -73,7 +73,8 @@ RFC_SYSLOG_FACILITIES = {
     'local7': 23,
 }
 
-
+loglevel = os.getenv('AWSLOGS_SD_LOGLEVEL', logging.WARNING)
+logging.basicConfig(level=loglevel)
 logger = logging.getLogger('awslogs')
 
 
