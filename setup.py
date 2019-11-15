@@ -23,6 +23,7 @@ setup(
         'requests',
         'retrying',
         'systemd-python',
+        'python-dateutil<2.8.1'
     ],
     entry_points={
         'console_scripts': [
