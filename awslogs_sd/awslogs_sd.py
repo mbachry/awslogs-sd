@@ -301,7 +301,7 @@ def push_records(client, records, unit_conf, state):
         'logEvents': [
             {
                 'timestamp': int(r.date.timestamp() * 1000),
-                'message': r.message
+                'message': r.message[0:1024]
             }
             for r in records
         ],
