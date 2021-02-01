@@ -19,7 +19,7 @@ setup(
         'awscli-cwlogs',
         'boto3',
         'gevent',
-        'pyyaml',
+        'PyYAML==5.3.1',
         'requests',
         'retrying',
         'systemd-python',
