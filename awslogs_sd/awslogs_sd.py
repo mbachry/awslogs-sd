@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import json
+import os
 import time
 import itertools
 import logging
@@ -25,7 +26,7 @@ from .metrics import metrics, metrics_task
 
 # cloudwatch doesn't allow batch spans larger than 24h
 MAX_BATCH_TIME_SPAN = timedelta(hours=24)
-MAX_BATCH_ITEMS = 100
+MAX_BATCH_ITEMS = int(os.getenv('AWSLOGS_SD_MAX_BATCH_ITEMS', 100))
 BATCH_TIMEOUT_S = 1.0
 MAX_QUEUE_SIZE = 100000
 
@@ -72,7 +73,8 @@ RFC_SYSLOG_FACILITIES = {
     'local7': 23,
 }
 
-
+loglevel = os.getenv('AWSLOGS_SD_LOGLEVEL', logging.WARNING)
+logging.basicConfig(level=loglevel)
 logger = logging.getLogger('awslogs')
 
 
@@ -299,7 +301,7 @@ def push_records(client, records, unit_conf, state):
         'logEvents': [
             {
                 'timestamp': int(r.date.timestamp() * 1000),
-                'message': r.message
+                'message': r.message[0:1024]
             }
             for r in records
         ],
@@ -410,8 +412,13 @@ def create_log_streams(conf):
     for unit_conf in conf.units:
         group = unit_conf.log_group_name
         name = unit_conf.log_stream_name
+        all_streams = []
         resp = client.describe_log_streams(logGroupName=group)
-        matches = [g for g in resp['logStreams'] if g['logStreamName'] == name]
+        all_streams += resp['logStreams']
+        while 'nextToken' in resp:
+          resp = client.describe_log_streams(logGroupName=group, nextToken=resp['nextToken'])
+          all_streams += resp['logStreams']
+        matches = [g for g in all_streams if g['logStreamName'] == name]
         if not matches:
             logger.info('Creating log stream: %s', name)
             client.create_log_stream(logGroupName=group, logStreamName=name)
